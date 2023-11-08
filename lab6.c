@@ -13,14 +13,14 @@ typedef enum {
 typedef struct {
     char *firstName;
     char *lastName;
-    double gpa;
+    char gpa[6];
 } DomesticStudent;
 
 //International student structure 
 typedef struct {
     char *firstName;
     char *lastName;
-    double gpa;
+    char gpa[6];
     int toefl;
 } InternationalStudent;
 
@@ -39,7 +39,7 @@ typedef struct StudentNode {
     struct StudentNode *next;
 }
 
-// Ensure every line ends in a new line character 
+// Ensure every line ends in a new line character, followed by a null terminator
 char* checkNewLine(char *buffer) {
     // Number of elements before the new line 
     int bufferElements = (int) strlen(buffer);
@@ -49,6 +49,10 @@ char* checkNewLine(char *buffer) {
 
     // Add another byte if does not contain a new line 
     char *newArr = (char*)malloc((bufferElements + 1 + !hasNewLine)* sizeof(char));
+    if (newArr == NULL) {
+        printf("Error: Can't malloc in checkNewLine");
+        return NULL;
+    }
 
     // Copies bytes from the desired string, minus the null terminator
     memcpy(newArr, buffer, bufferElements);
@@ -58,7 +62,7 @@ char* checkNewLine(char *buffer) {
         bufferElements++;
     }
 
-    newArr[bufferElements] = '\0'
+    newArr[bufferElements] = '\0';
 
     return newArr;
 }
@@ -78,9 +82,9 @@ int isValidInt(char *str) {
 }
 
 // Parse the input line, and store the data in the appropiate variables defined in the main method 
-void parseString(char *line, char **fName, char **lName, double *gpa, char *type, int *toefl, FILE *fp_out) {
+void parseString(char *line, char **fName, char **lName, char *gpaArr, double *gpa, char *type, int *toefl, FILE *fp_out) {
     char *token;
-    int tokenNum;
+    int tokenCount = 0;
 
     // Ensure the first token is a string
     token = strtok(line, " ");
@@ -108,10 +112,19 @@ void parseString(char *line, char **fName, char **lName, double *gpa, char *type
         fprintf(fp_out, "Error: Invalid GPA\n");
         exit(EXIT_FAILURE);
     }
-
+    // Store the gpa String in gpaStr, so it can be passed into student structure. 
+    strncopy(gpaArr, token, 5);
+    gpaArr[6] = '\0';
+    if (*gpaArr == NULL) {
+        fprintf(fp_out, "Error: Memory allocation failed for gpa string\n");
+        exit(EXIT_FAILURE);
+    }
     *gpa = strtod(token, NULL);
+    if (*gpa < 0.0 || *gpa > 4.33) {
+        fprintf(fp_out, "Error: GPA cannot be negative or greater than 4.33\n");
+        exit(EXIT_FAILURE);
+    }
     tokenCount++;
-
 
     // Validate the type
     token = strtok(NULL, " ");
@@ -131,6 +144,10 @@ void parseString(char *line, char **fName, char **lName, double *gpa, char *type
             exit(EXIT_FAILURE);
         }
         *toefl = (int)strtol(token, NULL, 10);
+        if (*toefl < 0) {
+            fprintf(fp_out, "Error: TOEFL score cannot be negative\n");
+            exit(EXIT_FAILURE);
+        }
         tokenCount++;
     }
 
@@ -145,44 +162,44 @@ void parseString(char *line, char **fName, char **lName, double *gpa, char *type
         fprintf(fp_out, "Error: Incorrect number of data fields\n");
         exit(EXIT_FAILURE);
     }
-
 }
 
 // Create a domestic student 
-DomesticStudent createDStudent(char *fName, char *lName, double gpa) {
-    DomesticStudent *dStudent = malloc(sizeof(DomesticStudent));
+DomesticStudent *createDStudent(char *fName, char *lName, char *gpaArr) {
+    DomesticStudent *dStudent = (DomesticStudent *)malloc(sizeof(DomesticStudent));
 
     if (dStudent == NULL) {
         printf("Error: Can't create dStudent");
         exit(EXIT_FAILURE);
     }
 
-    dStudent.firstName = fName;
-    dStudent.lastName = lastName;
-    dStudent.gpa = gpa;
+    // Create another duplicate of names so when memory is freed there is no dangling pointers
+    dStudent.firstName = strdup(fName);
+    dStudent.lastName = strdup(lName);
+    dStudent.gpa = strncpy(gpa, gpaArr, 6);
 
     return dStudent;
 }
 
 // Create an international student 
-InternationalStudent createIlStudent(char *fName, char *lName, double gpa, int toefl) {
-    InternationalStudent *iStudent = malloc(sizeof(InternationalStudent));
+InternationalStudent *createIlStudent(char *fName, char *lName, char *gpaArr, int toefl) {
+    InternationalStudent *iStudent = (InternationalStudent *)malloc(sizeof(InternationalStudent));
 
     if (iStudent == NULL) {
         printf("Error: Can't craete iStudent");
         exit(EXIT_FAILURE);
     }
 
-    iStudent.firstName = fName;
-    iStudent.lName = lName;
-    iStudent.gpa = gpa;
+    iStudent.firstName = strdup(fName);
+    iStudent.lastName = strdup(lName);
+    iStudent.gpa = strncpy(gpa, gpaArr, 6);
     iStudent.toefl = toefl;
 
     return iStudent;
 }
 
 // Create a student node depending on the type 
-StudentNode *createStudentNode(StudentType studentType, void *studentStruct) {
+DomesticStudent *createStudentNode(StudentType studentType, void *studentStruct) {
     // Create student node,
     StudentNode *newStudent = (StudentNode *)malloc(sizeof(StudentNode));
 
@@ -193,11 +210,19 @@ StudentNode *createStudentNode(StudentType studentType, void *studentStruct) {
 
     newStudent -> type = studentType;
 
-    if ( studentType == INTERNATIONAL) {
+    if (studentType == INTERNATIONAL) {
         // Cast to appropiate student, and derefernce to get access the struct 
-        newStudent -> student.iStudent = *(InternationalStudent*) studentStruct;
+        InternationalStudent *original = *(InternationalStudent *) studentStruct;
+        // Deep copy each string
+        newStudent -> student.iStudent.firstName = strdup(original -> firstName);
+        newStudent -> student.iStudent.firstName = strdup(original -> lastName);
+        newStudent -> student.gpa = original -> gpa;
+        newStudent -> student.toefl = original -> toefl;
     } else if (studentType == DOMESTIC) {
-        newStudent -> student.dStudent = *(DomesticStudent*) studentStruct;
+        DomesticStudent *original = *(DomesticStudent *) studentStruct;
+        newStudent -> student.dStudent.firstName = strdup(original -> firstName);
+        newStudent -> student.dStudent.firstName = strdup(original -> lastName);
+        newStudent -> student.gpa = original -> gpa;
     }
 
     newStudent -> next = NULL;
@@ -214,19 +239,76 @@ void addToList(StudentNode **head, StudentNode *newNode) {
     }
 
     current -> next = newNode
-
 }
 
+//Print the Students
+void printStudents(StudentNode *head, FILE *fp_out) {
+    // If you have a dummy head node, start with the next node
+    StudentNode *current = head->next;
+
+    // Iterate through the linked list
+    while (current != NULL) {
+        // Based on the student type, print the information to the output file
+        if (current -> type == INTERNATIONAL) {
+            InternationalStudent *iStudent = (InternationalStudent *)current -> student.iStudent;
+            printInternationalStudent(iStudent, fp_out);
+        } else if (current -> type == DOMESTIC) {
+            DomesticStudent *dStudent = (DomesticStudent *)current -> student.dStudent;
+            printDomesticStudent(dStudent, fp_out);
+        }
+        // Move to the next node
+        current = current->next;
+    }
+}
+
+// Function to print information of an international student
+void printInternationalStudent(InternationalStudent *student, FILE *fp_out) {
+    fprintf(fp_out, "%s %s %s I\n", student->firstName, student->lastName, student->gpa);
+}
+
+// Function to print information of a domestic student
+void printDomesticStudent(DomesticStudent *student, FILE *fp_out) {
+    fprintf(fp_out, "%s %s %s D\n", student->firstName, student->lastName, student->gpa);
+}
+
+// Free the nodes in the list 
+void freeList(StudentNode *head) {
+    StudentNode *current = head;
+    while (current != NULL) {
+        StudentNode *next = current -> next;
+
+        // Free student structs 
+        if (current -> type == INTERNATIONAL) {
+            free(current -> student.iStudent.firstName);
+            free(current -> student.iStudent.lastName);
+        } else if (current -> type == DOMESTIC) {
+            free(current -> student.dStudent.firstName);
+            free(current -> student.dStudent.lastName);
+        }
+        free(current);
+        current = next;
+    }
+}
+
+// Entry to the program
 int main(int argc, char *argv[]) {
 
-    if (argv != 4) {
+    if (argc != 4) {
         printf("Error: There must be 4 command line arguments");
+        return 1;
     }
 
     // Get command line arguments
     char *inputFileName = argv[1];
     char *outputFileName = argv[2];
     int option = atoi(argv[3]);
+
+    FILE *fp = fopen(inputFileName, "r");
+    if (!fp) { 
+        perror("Error: Can't find the output file")
+        // Exits the program
+        return 1;
+    }
 
     FILE *fp_out = fopen(outputFileName, "w");
     if (!fp_out) {
@@ -236,28 +318,26 @@ int main(int argc, char *argv[]) {
     }
 
     // Gets written to the output file 
-    if (option < 1 || > 3) {
-        fprintf("Error: Option must be greater than 0");
-        fclose(fp_out_);
-        return 1;
-    }
-    
-    FILE *fp = fopen(inputFileName, "r");
-    if (!fp) { 
-        perror("Error: Can't find the output file")
-        // Exits the program
+    if (option < 1 || option > 3) {
+        fprintf("Error: Option must be between 1 and 3\n");
+        fclose(fp_out);
+        fckise(fp);
         return 1;
     }
 
     // Create the head of a node 
     StudentNode *head = (StudentNode*)malloc(sizeof(StudentNode));
-    if (*head == NULL) {
-        printf("Memory allocation failed!");
+    if (head == NULL) {
+        fprintf("Error: Memory allocation for head failed!\n");
+        fclose(fp_out);
+        fclose(fp);
+        return 1; 
     }
     head -> next = NULL;
 
     char *fName = NULL;
-    char *lName = NULL:
+    char *lName = NULL;
+    char gpaArr[6] = " ";
 
     // The following ptrs now contain a memory address which holds the value. When passed into the 
     // parseString method, the value at each ptr can be changed. 
@@ -273,27 +353,26 @@ int main(int argc, char *argv[]) {
     char buffer[1000];
 
     // Get the line from the text tile
-    while (fgets(buffer, sizeof(buffer), inputFileName)) {
-        // *line points to an array with no trailing white spaces, and no null terminator
+    while (fgets(buffer, sizeof(buffer), fp)) {
+        // *line points to an array with no trailing white spaces
         char *line = checkNewLine(buffer);
 
         // Parse the string, assign values to appropiate variables 
-        parseString(line, &fName, &lName, gpaPtr, typePtr, toeflPtr, fp_out);
+        parseString(line, &fName, &lName, gpaArr, gpaPtr, typePtr, toeflPtr, fp_out);
 
         // Create appropiate student struct, add to linked list 
         if ((typeVal == 'I' || typeVal == 'i') && gpaVal > 3.9 && toeflVal >= 0 && toeflVal <= 120) {
-                // Create Structure
-                InternationalStudent *iStudent = createIlStudent(fName, lName, gpaVal, toeflVal);
+           // Create Structure
+            InternationalStudent *iStudent = createIlStudent(fName, lName, gpaVal, toeflVal);
 
-                // Create Node
-                StudentNode *studentNode = createStudentNode(INTERNATIONAL, (void*)iStudent);
+            // Create Node
+            StudentNode *studentNode = createStudentNode(INTERNATIONAL, (void*)iStudent);
 
-                //Add to linked list
-                addToList(&head, studentNode);
-
+            //Add to linked list
+            addToList(&head, studentNode);
         } else if ((typeVal == 'D' || typeVal == 'd') && gpaVal > 3.9) {
             // Create Structure
-            DomesticStudent dStudent = createDStudent(fName, lName, gpaVal);
+            DomesticStudent *dStudent = createDStudent(fName, lName, gpaVal);
 
             // Create Node
             StudentNode *studentNode = createStudentNode(DOMESTIC, (void*)dStudent);
@@ -301,21 +380,20 @@ int main(int argc, char *argv[]) {
             //Add to linked list
             addToList(&head, studentNode);
         }
-    
+        char gpaArr[6] = " ";
+        //Free cleared trailing white space memory 
+        free(line);
 
-    free(fName);
-    free(lName);
-    fName = NULL;
-    lName = NULL;
-    
-    }
-     
-
-    // Write a function to free all of the nodes in the linked list. Just need to iterate over it and free the memory 
-    while (head -> next != NULL) {
-        free(node)
+        free(fName);
+        free(lName);
+        fName = NULL;
+        lName = NULL;
     }
 
+    printStudents(head, fp_out);
+
+    freeList(head);
+    
     fclose(fp);
     fclose(fp_out);
 
