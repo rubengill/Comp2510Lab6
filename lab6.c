@@ -191,16 +191,29 @@ StudentNode *createStudentNode(StudentType studentType, void *studentStruct) {
         exit(EXIT_FAILURE);
     }
 
-    newStudent -> type = type;
+    newStudent -> type = studentType;
 
-    
-    
+    if ( studentType == INTERNATIONAL) {
+        // Cast to appropiate student, and derefernce to get access the struct 
+        newStudent -> student.iStudent = *(InternationalStudent*) studentStruct;
+    } else if (studentType == DOMESTIC) {
+        newStudent -> student.dStudent = *(DomesticStudent*) studentStruct;
+    }
 
     newStudent -> next = NULL;
 
+    return newStudent;
 }
 
+//Adds a student node to the end of the list 
 void addToList(StudentNode **head, StudentNode *newNode) {
+    StudentNode* current = *head;
+
+    while(current -> next != NULL) {
+        current = current -> next;
+    }
+
+    current -> next = newNode
 
 }
 
@@ -273,17 +286,17 @@ int main(int argc, char *argv[]) {
                 InternationalStudent *iStudent = createIlStudent(fName, lName, gpaVal, toeflVal);
 
                 // Create Node
-                StudentNode *studentNode = createStudentNode(INTERNATIONAL, iStudent);
+                StudentNode *studentNode = createStudentNode(INTERNATIONAL, (void*)iStudent);
 
                 //Add to linked list
                 addToList(&head, studentNode);
-                
+
         } else if ((typeVal == 'D' || typeVal == 'd') && gpaVal > 3.9) {
             // Create Structure
             DomesticStudent dStudent = createDStudent(fName, lName, gpaVal);
 
             // Create Node
-            StudentNode *studentNode = createStudentNode(DOMESTIC, dStudent);
+            StudentNode *studentNode = createStudentNode(DOMESTIC, (void*)dStudent);
 
             //Add to linked list
             addToList(&head, studentNode);
@@ -308,24 +321,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
-
-1. HOW TO SOLVE THE PROBLEM. WHAT IS THE PROBLEM ? 
-    - We need to READ the contents of a file, and then we need to WRITE the results to an output file. 
-    - THE PROBLEM IS: WRITE TO THE OUTPUT FILE: 
-        - STUDENTS WHOSE GPA IS GREATER THAN 3.9. Can store up TO 3 DECIMAL PLACES. STORE ORIGINAL DEC VALUE IF POSSIBLE
-        - INTERNATIONAL STUDENT HAS A TOEFL SCORE. IF LESS THAN 70 ( < 70) do NOT write to the output file 
-        - DOMESTIC STUDENT: NO TOEFL
-        - ORDER OF STUDENTS IS SAME AS ORDER IN THE FILE
-        - IF FORMAT OF STUDENT DOESNT FIT SPECIFIED FORMAT, OUTPUT APROPIATE ERROR MESSAGE
-        - OPTION FIELD: 1 = Save filtered output of domestic students, 2 = filtered output of inter students, 3 = output of all STUDENTS
-        - Assume everyone has a first and last name 
-        - every line ends in a new line character 
-        - WE NEED TO HANDLE CORNER CASES 
-2. READ in the input file using: fgets = RETURNS A STRING (NULL TERMINATED) FOR EACH LINE IN THE FILE. A LINE CORRESPONDS TO A STUDENT. Print error message to text file if does not follow specified format 
-3. We are using struct. so that means the students will be connected to one another via Nodes. So we need a method to take the input data, and create a node with it. 
-4. Ok so we take the data, create a node, and then add it to the linked list. After that is all done, we can iterate through the linked list, and print the data for each list on a line. 
-5. Since we use fgets to create a string from each line of data, we need to parse this string somehow to assign the correct values to the variables in the struct node. 
-    - For Examnple: For Mike Johnson 3.125 D, We need to assign fName: Mike, lName: Johnson, gpa: 3.125, link: link -> link;
-    - Use the white space to parse the string ? and treat the number as a string and then convert it when printing it ? 
-
