@@ -77,30 +77,131 @@ int isValidInt(char *str) {
     return *endptr == '\0' || *endptr == '\n';
 }
 
-void parseString(char *line, char **fName, char **lName, double *gpa, char *type, int toefl) {
-
+// Parse the input line, and store the data in the appropiate variables defined in the main method 
+void parseString(char *line, char **fName, char **lName, double *gpa, char *type, int *toefl, FILE *fp_out) {
     char *token;
     int tokenNum;
 
+    // Ensure the first token is a string
     token = strtok(line, " ");
     if (token == NULL || !isalpha(*token)) {
-        fprintf(fp_out, "Error: Invalid first name\n")
-        exit(EXIT_FAILURE)
+        fprintf(fp_out, "Error: Invalid first name\n");
+        exit(EXIT_FAILURE);
     }
 
+    // Dereference double pointer to get the mem address stored in the pointer to a string, and change the string it points too 
+    *fName = strdup(token);
+    tokenCount++;
+
+    token = strtok(NULL, " ");
+    if (token == NULL || !isalpha(*token)) {
+        fprintf(fp_out, "Error: Invalid last name\n");
+        exit(EXIT_FAILURE);
+    }
+
+    *lName = strdup(token);
+    tokenCount++;
+
+    // Validate GPA 
+    token = strtok(NULL, " ");
+    if (token == NULL || !isValidDouble(token)) {
+        fprintf(fp_out, "Error: Invalid GPA\n");
+        exit(EXIT_FAILURE);
+    }
+
+    *gpa = strtod(token, NULL);
+    tokenCount++;
+
+
+    // Validate the type
+    token = strtok(NULL, " ");
+    if (token == NULL || (token[0] != 'I' && token[0] != 'i' && token[0] != 'D' && token[0] != 'd')) {
+        fprintf(fp_out, "Error: Invalid student type\n");
+        exit(EXIT_FAILURE);
+    }
+
+    *type = token[0];
+    tokenCount++;
+
+    // Valid toefl is student is international
+    if (*type == 'I' || *type == 'i') {
+        token = strtok(NULL, " ");
+        if(token == NULL || !isValidInt(token)) {
+            fprintf(fp_out, "Error: Invalid TOEFL\n");
+            exit(EXIT_FAILURE);
+        }
+        *toefl = (int)strtol(token, NULL, 10);
+        tokenCount++;
+    }
+
+    //Check if there are more tokens
+    if(strtok(NULL, " ") != NULL) {
+        fprintf(fp_out, "Error: Too many tokens in the line!\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    // Gatekeeper to ensure that there are only 4 or 5 tokens 
+    if (((*type == 'I' || *type == 'i') && tokenCount != 5) || ((*type == 'D' || *type == 'd') && tokenCount != 4)) {
+        fprintf(fp_out, "Error: Incorrect number of data fields\n");
+        exit(EXIT_FAILURE);
+    }
 
 }
 
-StudentNode *createStudentNode(char *arr, FILE) {
+// Create a domestic student 
+DomesticStudent createDStudent(char *fName, char *lName, double gpa) {
+    DomesticStudent *dStudent = malloc(sizeof(DomesticStudent));
+
+    if (dStudent == NULL) {
+        printf("Error: Can't create dStudent");
+        exit(EXIT_FAILURE);
+    }
+
+    dStudent.firstName = fName;
+    dStudent.lastName = lastName;
+    dStudent.gpa = gpa;
+
+    return dStudent;
+}
+
+// Create an international student 
+InternationalStudent createIlStudent(char *fName, char *lName, double gpa, int toefl) {
+    InternationalStudent *iStudent = malloc(sizeof(InternationalStudent));
+
+    if (iStudent == NULL) {
+        printf("Error: Can't craete iStudent");
+        exit(EXIT_FAILURE);
+    }
+
+    iStudent.firstName = fName;
+    iStudent.lName = lName;
+    iStudent.gpa = gpa;
+    iStudent.toefl = toefl;
+
+    return iStudent;
+}
+
+// Create a student node depending on the type 
+StudentNode *createStudentNode(StudentType studentType, void *studentStruct) {
+    // Create student node,
     StudentNode *newStudent = (StudentNode *)malloc(sizeof(StudentNode));
+
+    if (newStudent == NULL) {
+        printf("Error: Can't create Node");
+        exit(EXIT_FAILURE);
+    }
+
+    newStudent -> type = type;
+
+    
+    
 
     newStudent -> next = NULL;
 
-    if (arr == NULLL) {
-        printf("Error: There is no arr being passed in to create a student node !");
-    }
+}
 
-    char *token = (arr, " ");
+void addToList(StudentNode **head, StudentNode *newNode) {
+
 }
 
 int main(int argc, char *argv[]) {
@@ -135,32 +236,78 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char *fName, lName;
-    float gpa; 
-    char type; 
-    int toefl;
+    // Create the head of a node 
+    StudentNode *head = (StudentNode*)malloc(sizeof(StudentNode));
+    if (*head == NULL) {
+        printf("Memory allocation failed!");
+    }
+    head -> next = NULL;
+
+    char *fName = NULL;
+    char *lName = NULL:
+
+    // The following ptrs now contain a memory address which holds the value. When passed into the 
+    // parseString method, the value at each ptr can be changed. 
+    double gpaVal;
+    double *gpaPtr = &gpaVal; 
+
+    char typeVal;
+    char *typePtr = &typeVal;
+
+    int toeflVal;
+    int *toeflPtr = &toeflVal;
 
     char buffer[1000];
 
-    // Get the line
+    // Get the line from the text tile
     while (fgets(buffer, sizeof(buffer), inputFileName)) {
         // *line points to an array with no trailing white spaces, and no null terminator
         char *line = checkNewLine(buffer);
-    }
 
-    // Need to create node for the head of the linked list 
+        // Parse the string, assign values to appropiate variables 
+        parseString(line, &fName, &lName, gpaPtr, typePtr, toeflPtr, fp_out);
+
+        // Create appropiate student struct, add to linked list 
+        if ((typeVal == 'I' || typeVal == 'i') && gpaVal > 3.9 && toeflVal >= 0 && toeflVal <= 120) {
+                // Create Structure
+                InternationalStudent *iStudent = createIlStudent(fName, lName, gpaVal, toeflVal);
+
+                // Create Node
+                StudentNode *studentNode = createStudentNode(INTERNATIONAL, iStudent);
+
+                //Add to linked list
+                addToList(&head, studentNode);
+                
+        } else if ((typeVal == 'D' || typeVal == 'd') && gpaVal > 3.9) {
+            // Create Structure
+            DomesticStudent dStudent = createDStudent(fName, lName, gpaVal);
+
+            // Create Node
+            StudentNode *studentNode = createStudentNode(DOMESTIC, dStudent);
+
+            //Add to linked list
+            addToList(&head, studentNode);
+        }
+    
+
+    free(fName);
+    free(lName);
+    fName = NULL;
+    lName = NULL;
+    
+    }
+     
+
+    // Write a function to free all of the nodes in the linked list. Just need to iterate over it and free the memory 
+    while (head -> next != NULL) {
+        free(node)
+    }
 
     fclose(fp);
     fclose(fp_out);
 
     return 0;
 }
-
-
-
-
-
-
 
 
 1. HOW TO SOLVE THE PROBLEM. WHAT IS THE PROBLEM ? 
@@ -181,6 +328,4 @@ int main(int argc, char *argv[]) {
 5. Since we use fgets to create a string from each line of data, we need to parse this string somehow to assign the correct values to the variables in the struct node. 
     - For Examnple: For Mike Johnson 3.125 D, We need to assign fName: Mike, lName: Johnson, gpa: 3.125, link: link -> link;
     - Use the white space to parse the string ? and treat the number as a string and then convert it when printing it ? 
-
-    - strtok will replace every delimeter with a new line character. Is this what we want ? 
 
