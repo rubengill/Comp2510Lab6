@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 // Flag that we can use to determine what type of student 
 typedef enum {
@@ -62,7 +63,35 @@ char* checkNewLine(char *buffer) {
     return newArr;
 }
 
-StudentNode *createStudentNode(char *arr, FILE *fp_out) {
+// Checks if a string can be converted to a double 
+int isValidDouble(char *str) {
+    char *endptr;
+    strtod(str, &endptr);
+    return *endptr == '\0' || *endptr == '\n';
+}
+
+// Checks if a string can be converted to an integer
+int isValidInt(char *str) {
+    char *endptr;
+    strtol(str, &endptr, 10);
+    return *endptr == '\0' || *endptr == '\n';
+}
+
+void parseString(char *line, char **fName, char **lName, double *gpa, char *type, int toefl) {
+
+    char *token;
+    int tokenNum;
+
+    token = strtok(line, " ");
+    if (token == NULL || !isalpha(*token)) {
+        fprintf(fp_out, "Error: Invalid first name\n")
+        exit(EXIT_FAILURE)
+    }
+
+
+}
+
+StudentNode *createStudentNode(char *arr, FILE) {
     StudentNode *newStudent = (StudentNode *)malloc(sizeof(StudentNode));
 
     newStudent -> next = NULL;
@@ -73,8 +102,6 @@ StudentNode *createStudentNode(char *arr, FILE *fp_out) {
 
     char *token = (arr, " ");
 }
-
-
 
 int main(int argc, char *argv[]) {
 
@@ -108,15 +135,17 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char buffer[500];
+    char *fName, lName;
+    float gpa; 
+    char type; 
+    int toefl;
+
+    char buffer[1000];
 
     // Get the line
     while (fgets(buffer, sizeof(buffer), inputFileName)) {
         // *line points to an array with no trailing white spaces, and no null terminator
-        char *line = removeWhiteSpace(buffer);
-
-
-
+        char *line = checkNewLine(buffer);
     }
 
     // Need to create node for the head of the linked list 
