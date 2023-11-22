@@ -39,32 +39,42 @@ typedef struct StudentNode {
     struct StudentNode *next;
 } StudentNode;
 
-// Ensure every line ends in a new line character, followed by a null terminator
-char* checkNewLine(char *buffer) {
-    // Number of elements before the new line 
-    int bufferElements = (int) strlen(buffer);
+// Trim white space 
+char* trimWhitespace(char *buffer) {
+    char *start = buffer;
+    char *end;
 
-    // 1 if has a new line
-    int hasNewLine = (bufferElements > 0 && buffer[bufferElements - 1] == '\n');
+    // Trim leading space
+    while(isspace((unsigned char)*start)) start++;
 
-    // Add another byte if does not contain a new line 
-    char *newArr = (char*)malloc((bufferElements + 1 + !hasNewLine)* sizeof(char));
-    if (newArr == NULL) {
-        printf("Error: Can't malloc in checkNewLine");
-        return NULL;
+    // All spaces?
+    if(*start == 0) {
+        // String is all spaces, return an empty string
+        char *emptyStr = (char*)malloc(1);
+        if (emptyStr == NULL) {
+            printf("Error: Memory allocation failed\n");
+            exit(EXIT_FAILURE);
+        }
+        *emptyStr = '\0';
+        return emptyStr;
     }
 
-    // Copies bytes from the desired string, minus the null terminator
-    memcpy(newArr, buffer, bufferElements);
+    // Trim trailing space
+    end = start + strlen(start) - 1;
+    while(end > start && isspace((unsigned char)*end)) end--;
 
-    if (!hasNewLine) {
-        newArr[bufferElements] = '\n';
-        bufferElements++;
+    // Write new null terminator
+    *(end + 1) = '\0';
+
+    // Allocate memory for the trimmed string
+    int trimmedLength = end - start + 2; // +2 for the character and null terminator
+    char *newStr = (char*)malloc(trimmedLength);
+    if (newStr == NULL) {
+        printf("Error: Memory allocation failed\n");
+        exit(EXIT_FAILURE);
     }
-
-    newArr[bufferElements] = '\0';
-
-    return newArr;
+    strcpy(newStr, start);
+    return newStr;
 }
 
 // Checks if a string can be converted to a double 
@@ -143,6 +153,9 @@ void parseString(char *line, char **fName, char **lName, char *gpaArr, double *g
         if (*toefl < 0) {
             fprintf(fp_out, "Error: TOEFL score cannot be negative\n");
             exit(EXIT_FAILURE);
+        } else if(*toelf > 120) {
+            fprintf(fp_out, "Error: TOEFL score cannot be greater than 120\n");
+            exit(EXIT_FAILURE);
         }
         tokenCount++;
     }
@@ -171,6 +184,7 @@ DomesticStudent *createDStudent(char *fName, char *lName, char *gpaArr) {
 
     // Create another duplicate of names so when memory is freed there is no dangling pointers
     dStudent -> firstName = strdup(fName);
+
     dStudent -> lastName = strdup(lName);
     strncpy(dStudent -> gpa, gpaArr, sizeof(dStudent->gpa) - 1);
     dStudent -> gpa[sizeof(dStudent->gpa) - 1] = '\0';
@@ -183,7 +197,7 @@ InternationalStudent *createIStudent(char *fName, char *lName, char *gpaArr, int
     InternationalStudent *iStudent = (InternationalStudent *)malloc(sizeof(InternationalStudent));
 
     if (iStudent == NULL) {
-        printf("Error: Can't craete iStudent");
+        printf("Error: Can't create iStudent");
         exit(EXIT_FAILURE);
     }
 
@@ -339,14 +353,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Create the head of a node 
-    StudentNode *head = (StudentNode*)malloc(sizeof(StudentNode));
-    if (head == NULL) {
-        fprintf(fp_out, "Error: Memory allocation for head failed!\n");
-        fclose(fp_out);
-        fclose(fp);
-        return 1; 
-    }
-    head -> next = NULL;
+    StudentNode *head = NULL;
 
     char *fName = NULL;
     char *lName = NULL;
@@ -368,7 +375,7 @@ int main(int argc, char *argv[]) {
     // Get the line from the text tile
     while (fgets(buffer, sizeof(buffer), fp)) {
         // *line points to an array with no trailing white spaces
-        char *line = checkNewLine(buffer);
+        char *line = trimWhitespace(buffer);
 
         typeVal = '\0';
         strcpy(gpaArr, " ");
@@ -377,7 +384,7 @@ int main(int argc, char *argv[]) {
         parseString(line, &fName, &lName, gpaArr, gpaPtr, typePtr, toeflPtr, fp_out);
 
         // Create appropiate student struct, add to linked list 
-        if ((typeVal == 'I' || typeVal == 'i') && gpaVal > 3.9 && toeflVal >= 0 && toeflVal <= 120) {
+        if ((typeVal == 'I' || typeVal == 'i') && gpaVal >= 3.9 && toeflVal >= 0 && toeflVal <= 120) {
            // Create Structure
             InternationalStudent *iStudent = createIStudent(fName, lName, gpaArr, toeflVal);
 
@@ -386,7 +393,7 @@ int main(int argc, char *argv[]) {
 
             //Add to linked list
             addToList(&head, studentNode);
-        } else if ((typeVal == 'D' || typeVal == 'd') && gpaVal > 3.9) {
+        } else if ((typeVal == 'D' || typeVal == 'd') && gpaVal >= 3.9) {
             // Create Structure
             DomesticStudent *dStudent = createDStudent(fName, lName, gpaArr);
 
