@@ -39,24 +39,19 @@ typedef struct StudentNode {
     struct StudentNode *next;
 } StudentNode;
 
-// Trim white space 
-char* trimWhitespace(char *buffer) {
+// Trim leaing and trailing white space 
+char* trimWhiteSpace(char *buffer, FILE *fp_out) {
     char *start = buffer;
     char *end;
 
     // Trim leading space
     while(isspace((unsigned char)*start)) start++;
 
-    // All spaces?
+    // All spaces
     if(*start == 0) {
-        // String is all spaces, return an empty string
-        char *emptyStr = (char*)malloc(1);
-        if (emptyStr == NULL) {
-            printf("Error: Memory allocation failed\n");
-            exit(EXIT_FAILURE);
-        }
-        *emptyStr = '\0';
-        return emptyStr;
+        // String is all spaces or empty
+        fprintf(fp_out, "Error: Input string is empty or contains only whitespace!\n");
+        exit(EXIT_FAILURE); // Exit immediately, no need to allocate emptyStr
     }
 
     // Trim trailing space
@@ -95,9 +90,9 @@ int isValidInt(char *str) {
 void parseString(char *line, char **fName, char **lName, char *gpaArr, double *gpa, char *type, int *toefl, FILE *fp_out) {
     char *token;
     int tokenCount = 0;
-
-    // Ensure the first token is a string
+    
     token = strtok(line, " ");
+
     if (token == NULL || !isalpha(*token)) {
         fprintf(fp_out, "Error: Invalid first name\n");
         exit(EXIT_FAILURE);
@@ -153,13 +148,13 @@ void parseString(char *line, char **fName, char **lName, char *gpaArr, double *g
         if (*toefl < 0) {
             fprintf(fp_out, "Error: TOEFL score cannot be negative\n");
             exit(EXIT_FAILURE);
-        } else if(*toelf > 120) {
-            fprintf(fp_out, "Error: TOEFL score cannot be greater than 120\n");
-            exit(EXIT_FAILURE);
+        } else if (*toefl > 120) {
+	    fprintf(fp_out, "Error: TOEFL score cannot be more than 120\n");
+	    exit(EXIT_FAILURE);
         }
         tokenCount++;
     }
-
+    
     //Check if there are more tokens
     if(strtok(NULL, " ") != NULL) {
         fprintf(fp_out, "Error: Too many tokens in the line!\n");
@@ -184,7 +179,11 @@ DomesticStudent *createDStudent(char *fName, char *lName, char *gpaArr) {
 
     // Create another duplicate of names so when memory is freed there is no dangling pointers
     dStudent -> firstName = strdup(fName);
-
+    if (dStudent -> firstName == NULL) {
+        printf("Memory allocation failed for firstname\n");
+        free(dStudent);
+        exit(EXIT_FAILURE);
+    }    
     dStudent -> lastName = strdup(lName);
     strncpy(dStudent -> gpa, gpaArr, sizeof(dStudent->gpa) - 1);
     dStudent -> gpa[sizeof(dStudent->gpa) - 1] = '\0';
@@ -197,7 +196,7 @@ InternationalStudent *createIStudent(char *fName, char *lName, char *gpaArr, int
     InternationalStudent *iStudent = (InternationalStudent *)malloc(sizeof(InternationalStudent));
 
     if (iStudent == NULL) {
-        printf("Error: Can't create iStudent");
+        printf("Error: Can't craete iStudent");
         exit(EXIT_FAILURE);
     }
 
@@ -255,6 +254,16 @@ void addToList(StudentNode **head, StudentNode *newNode) {
     }
 }
 
+// Function to print information of an international student
+void printInternationalStudent(InternationalStudent *student, FILE *fp_out) {
+    fprintf(fp_out, "%s %s %s I %d\n", student -> firstName, student -> lastName, student -> gpa, student -> toefl);
+}
+
+// Function to print information of a domestic student
+void printDomesticStudent(DomesticStudent *student, FILE *fp_out) {
+    fprintf(fp_out, "%s %s %s D\n", student -> firstName, student -> lastName, student -> gpa);
+}
+
 //Print the Students
 void printStudents(StudentNode *head, FILE *fp_out, int option) {
     // Iterate through the linked list
@@ -286,16 +295,6 @@ void printStudents(StudentNode *head, FILE *fp_out, int option) {
                 break;
         }
     }
-}
-
-// Function to print information of an international student
-void printInternationalStudent(InternationalStudent *student, FILE *fp_out) {
-    fprintf(fp_out, "%s %s %s I %d\n", student -> firstName, student -> lastName, student -> gpa, student -> toefl);
-}
-
-// Function to print information of a domestic student
-void printDomesticStudent(DomesticStudent *student, FILE *fp_out) {
-    fprintf(fp_out, "%s %s %s D\n", student -> firstName, student -> lastName, student -> gpa);
 }
 
 // Free the nodes in the list 
@@ -332,7 +331,7 @@ int main(int argc, char *argv[]) {
 
     FILE *fp = fopen(inputFileName, "r");
     if (!fp) { 
-        perror("Error: Can't find the output file")
+        perror("Error: Can't find the output file");
         // Exits the program
         return 1;
     }
@@ -348,7 +347,7 @@ int main(int argc, char *argv[]) {
     if (option < 1 || option > 3) {
         fprintf(fp_out, "Error: Option must be between 1 and 3\n");
         fclose(fp_out);
-        fckise(fp);
+        fclose(fp);
         return 1;
     }
 
@@ -371,20 +370,25 @@ int main(int argc, char *argv[]) {
     int *toeflPtr = &toeflVal;
 
     char buffer[1000];
-
+    
     // Get the line from the text tile
     while (fgets(buffer, sizeof(buffer), fp)) {
-        // *line points to an array with no trailing white spaces
-        char *line = trimWhitespace(buffer);
-
         typeVal = '\0';
         strcpy(gpaArr, " ");
         
+        // *line points to an array with no trailing white spaces
+        char *line = trimWhiteSpace(buffer, fp_out);
+        
+        if (line[0] == '\0') {
+        free(line);
+        continue;
+    }
+ 
         // Parse the string, assign values to appropiate variables 
         parseString(line, &fName, &lName, gpaArr, gpaPtr, typePtr, toeflPtr, fp_out);
 
         // Create appropiate student struct, add to linked list 
-        if ((typeVal == 'I' || typeVal == 'i') && gpaVal >= 3.9 && toeflVal >= 0 && toeflVal <= 120) {
+        if ((typeVal == 'I' || typeVal == 'i') && gpaVal >= 3.9 && toeflVal >= 70) {
            // Create Structure
             InternationalStudent *iStudent = createIStudent(fName, lName, gpaArr, toeflVal);
 
@@ -396,7 +400,7 @@ int main(int argc, char *argv[]) {
         } else if ((typeVal == 'D' || typeVal == 'd') && gpaVal >= 3.9) {
             // Create Structure
             DomesticStudent *dStudent = createDStudent(fName, lName, gpaArr);
-
+            
             // Create Node
             StudentNode *studentNode = createStudentNode(DOMESTIC, (void*)dStudent);
 
@@ -405,7 +409,7 @@ int main(int argc, char *argv[]) {
         }
         //Free cleared trailing white space memory 
         free(line);
-
+	line = NULL;
         free(fName);
         free(lName);
         fName = NULL;
