@@ -3,23 +3,48 @@
 #include <string.h>
 
 //Add the two numbers
-void logicalLadder(char *ptrNumOne, char *ptrNumTwo, size_t nbytes) {
-    char tempOne[nbytes];
-    char tempTwo[nbytes];
+void logicalLadder(void *ptrNumOne, void *ptrNumTwo, size_t nbytes) {
+    char numOne[nbytes];
+    char numTwo[nbytes];
+    //char result[nbytes]
+    char carry = 0;
 
-    // Copy the command line numbers into the char arrays since we do not know the type 
+    // Copying data from pointers to local arrays
     memcpy(numOne, ptrNumOne, nbytes);
     memcpy(numTwo, ptrNumTwo, nbytes);
 
-    // Get bit represenation of numbers
-    long numOne = atol(tempOne);
-    long numTwo = atol(tempTwo);
+    for (size_t i = 0; i < (nbytes); ++i) {
+        char result = numOne[i] ^ numTwo[i] ^ carry;
+        //Iterates through each bit in the byte
+        carry = (numOne[i] & numTwo[i]) | (numOne[i] & carry) | (numTwo[i] & carry);
+        numOne[i] = result;
+    }
 
+    // Copy the result back to ptrNumOne
+    memcpy(ptrNumOne, numOne, nbytes);
 }
 
-// Use bidwitdth to detect overflow 
-detectOverFlow() {
 
+// Use bidwitdth to detect overflow 
+void detectOverFlow(void *resultPtr, int bitwidth, int shift, size_t nbytes) {
+    long result = 0;
+    memcpy(&result, resultPtr, nbytes);
+
+    long maxVal = (1L << (bitwidth - 1)) - 1;;
+    long minVal = -(1L << (bitwidth - 1));;
+
+    // Check for overflow
+    if (result > maxVal || result < minVal) {
+        printf("Overflow detected within the specified %d-bit width\n", bitwidth);
+        // Perform right shift
+        result >>= shift;
+        printf("Result after right shift: %ld\n", result);
+    } else {
+        printf("Result of addition: %ld\n", result);
+    }
+
+    // Copy the result back to the pointer
+    memcpy(resultPtr, &result, nbytes);
 }
 
 
@@ -40,16 +65,17 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Calculate the size needed based on the bitwidth
-    size_t nbytes = bitwidth / 8;
+    long numOne = atol(argv[2]);
+    long numTwo = atol(argv[3]);
 
     // Shift number
     int shift = atoi(argv[4]);
 
+    // Calculate the size needed based on the bitwidth
+    size_t nbytes = bitwidth / 8;
+
     //Preform the addition 
-    logicalLadder(argv[2], argv[3], nbytes);
-    // logicalLadder(&numOne, &numTwo, nbytes);
+    logicalLadder(&numOne, &numTwo, nbytes);
 
     return 0;
 }
-
