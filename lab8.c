@@ -4,41 +4,38 @@
 
 //Add the two numbers
 void logicalLadder(void *ptrNumOne, void *ptrNumTwo, size_t nbytes) {
-    char numOne[nbytes];
-    char numTwo[nbytes];
-    //char result[nbytes]
-    char carry = 0;
+    long numOne = 0;
+    long numTwo = 0;
+    long carry = 0;
 
-    // Copying data from pointers to local arrays
-    memcpy(numOne, ptrNumOne, nbytes);
-    memcpy(numTwo, ptrNumTwo, nbytes);
+    // Copy data 
+    memcpy(&numOne, ptrNumOne, nbytes);
+    memcpy(&numTwo, ptrNumTwo, nbytes);
 
-    for (size_t i = 0; i < (nbytes); ++i) {
-        char result = numOne[i] ^ numTwo[i] ^ carry;
-        //Iterates through each bit in the byte
-        carry = (numOne[i] & numTwo[i]) | (numOne[i] & carry) | (numTwo[i] & carry);
-        numOne[i] = result;
+    // Perform addition 
+    while (numTwo != 0) {
+        carry = numOne & numTwo;
+        numOne = numOne ^ numTwo;
+        numTwo = carry << 1;
     }
 
-    // Copy the result back to ptrNumOne
-    memcpy(ptrNumOne, numOne, nbytes);
+    // ptrNumOne points to added result
+    memcpy(ptrNumOne, &numOne, nbytes);
 }
-
 
 // Use bidwitdth to detect overflow 
 void detectOverFlow(void *resultPtr, int bitwidth, int shift, size_t nbytes) {
     long result = 0;
     memcpy(&result, resultPtr, nbytes);
 
-    long maxVal = (1L << (bitwidth - 1)) - 1;;
-    long minVal = -(1L << (bitwidth - 1));;
+    long maxVal = (1L << (bitwidth - 1)) - 1;
+    long minVal = -(1L << (bitwidth - 1));
 
     // Check for overflow
     if (result > maxVal || result < minVal) {
-        printf("Overflow detected within the specified %d-bit width\n", bitwidth);
-        // Perform right shift
         result >>= shift;
         printf("Result after right shift: %ld\n", result);
+        printf("Overflow detected within the specified %d-bit width\n", bitwidth);
     } else {
         printf("Result of addition: %ld\n", result);
     }
@@ -46,7 +43,6 @@ void detectOverFlow(void *resultPtr, int bitwidth, int shift, size_t nbytes) {
     // Copy the result back to the pointer
     memcpy(resultPtr, &result, nbytes);
 }
-
 
 // Drives the program
 int main(int argc, char *argv[]) {
@@ -60,22 +56,21 @@ int main(int argc, char *argv[]) {
     int bitwidth = atoi(argv[1]);
 
     // Check if the bitwidth is the correct number 
-    if (bitWidth != 8 && bitWidth != 16 && bitWidth != 32 && bitWidth != 64) {
-        perror("Bitwidth must be: 8, 16, 32 or 64");
+    if (bitwidth != 8 && bitwidth != 16 && bitwidth != 32 && bitwidth != 64) {
+        printf("Bitwidth must be: 8, 16, 32 or 64");
         return 1;
     }
 
-    long numOne = atol(argv[2]);
-    long numTwo = atol(argv[3]);
+    short numOne = atol(argv[2]);
+    short numTwo = atol(argv[3]);
 
     // Shift number
     int shift = atoi(argv[4]);
 
-    // Calculate the size needed based on the bitwidth
-    size_t nbytes = bitwidth / 8;
+    logicalLadder(&numOne, &numTwo, sizeof(short));
 
-    //Preform the addition 
-    logicalLadder(&numOne, &numTwo, nbytes);
+    // Detect and handle overflow
+    detectOverFlow(&numOne, bitwidth, shift, sizeof(short));
 
     return 0;
 }
