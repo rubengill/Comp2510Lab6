@@ -3,12 +3,12 @@
 #include <string.h>
 
 //Structure that holds a pointer to a key and value
-typedef struct KeyValue {
+typedef struct {
     void *key;
-    void  *value;
+    void *value;
     size_t keySize;
     size_t valueSize;
-};
+} KeyValue;
 
 // Defines a node, which can hold Key/Values
 typedef struct Node {
@@ -48,6 +48,7 @@ void addNode(Node **head, Node *newNode) {
 
 // Create node, pass in needed data to make the structure
 Node *createNode(void *key, size_t keySize, void *value, size_t valueSize) {
+    printf("Creating new node...\n");
     Node *newNode = malloc(sizeof(Node));
     if (newNode == NULL) {
         perror("Failed to allocate memory for new node");
@@ -75,6 +76,9 @@ Node *createNode(void *key, size_t keySize, void *value, size_t valueSize) {
     newNode->nextNode = NULL;
     newNode->previousNode = NULL;
 
+    printf("\n");
+
+    printf("Node created successfully.\n");
     return newNode;
 }
 
@@ -97,6 +101,9 @@ void insertPair(Node **head) {
 
     printf("Value data size: \n");
     scanf("%zu", dataSizeTwo);
+
+    printf("Inserting: key='%s', keySize=%zu, value='%s', valueSize=%zu\n", inputOne, dataSizeOne, inputTwo, dataSizeTwo);
+
 
     Node *newNode = createNode(&inputOne, dataSizeOne, &inputTwo, dataSizeTwo);
     addNode(head, newNode);
@@ -132,7 +139,7 @@ void printKeys(Node **head) {
     Node *current = *head; 
     while (current != NULL) {
         if (current->keyValue.keySize == sizeof(int)) {
-            printf("%d ", *(int *)(current -> keyValue.key));
+            printf("%d ", atoi((current -> keyValue.key));
         } else if (current -> keyValue.keySize == sizeof(char)) {
             printf("%c ", *(char *)(current -> keyValue.key));
         } else if (current -> keyValue.keySize == sizeof(float)) {
@@ -211,7 +218,7 @@ void repair(Node **head) {
     }
 
     // Clear the current list if it exists
-    clearList(head);
+    clearList(&head);
 
     // Read the file and reconstruct the list
     size_t keySize
@@ -274,7 +281,7 @@ int main() {
         }
     } while (choice != 6);
 
-    clearList(head);
+    clearList(&head);
 
     //Exit the program 
     return 0;
